@@ -9,6 +9,8 @@ interface CartItem {
   serviceId: string
   name: string
   price: number
+  originalPrice?: number
+  discount?: number
   quantity: number
   categoryIcon: string
 }
@@ -947,15 +949,37 @@ export default function NewBookingPage() {
                       <p className="text-sm font-medium text-gray-900 truncate">{item.name}</p>
                       <p className="text-xs text-gray-400">Qty: {item.quantity}</p>
                     </div>
-                    <p className="text-sm font-semibold text-gray-900 flex-shrink-0">
-                      &#8377;{(item.price * item.quantity).toLocaleString('en-IN')}
-                    </p>
+                    <div className="text-right flex-shrink-0">
+                      <p className="text-sm font-semibold text-gray-900">
+                        &#8377;{(item.price * item.quantity).toLocaleString('en-IN')}
+                      </p>
+                      {item.discount && item.discount > 0 && item.originalPrice && (
+                        <p className="text-xs text-gray-400 line-through">
+                          &#8377;{(item.originalPrice * item.quantity).toLocaleString('en-IN')}
+                        </p>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
 
               {/* Totals */}
               <div className="border-t border-gray-100 mt-4 pt-4 space-y-2">
+                {/* Discount savings row */}
+                {(() => {
+                  const totalSavings = cart.reduce((sum, item) => {
+                    if (item.discount && item.discount > 0 && item.originalPrice) {
+                      return sum + (item.originalPrice - item.price) * item.quantity
+                    }
+                    return sum
+                  }, 0)
+                  return totalSavings > 0 ? (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-green-600 font-medium">Discount Savings</span>
+                      <span className="text-green-600 font-semibold">-&#8377;{totalSavings.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                    </div>
+                  ) : null
+                })()}
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-500">Subtotal</span>
                   <span className="text-gray-900">&#8377;{subtotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>

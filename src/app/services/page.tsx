@@ -20,6 +20,7 @@ interface Service {
   slug: string
   description: string
   basePrice: number
+  discount: number
   duration: number
   category: { id: string; name: string; icon: string; slug: string }
 }
@@ -97,13 +98,23 @@ function ServicesPage() {
     return result
   }, [services, selectedCategory, searchQuery])
 
+  // Helper to get final price after discount
+  const getFinalPrice = (service: Service) => {
+    if (service.discount > 0) {
+      return Math.round(service.basePrice * (1 - service.discount / 100))
+    }
+    return service.basePrice
+  }
+
   // Persist cart to localStorage
   useEffect(() => {
     if (cart.length > 0) {
       const cartData = cart.map(item => ({
         serviceId: item.service.id,
         name: item.service.name,
-        price: item.service.basePrice,
+        price: getFinalPrice(item.service),
+        originalPrice: item.service.basePrice,
+        discount: item.service.discount || 0,
         quantity: item.quantity,
         categoryIcon: item.service.category.icon,
       }))
@@ -111,7 +122,7 @@ function ServicesPage() {
     } else {
       localStorage.removeItem('suchiti-cart')
     }
-  }, [cart])
+  }, [cart]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Cart helpers
   const addToCart = (service: Service) => {
@@ -147,7 +158,7 @@ function ServicesPage() {
   }
 
   const cartTotal = cart.reduce(
-    (sum, item) => sum + item.service.basePrice * item.quantity,
+    (sum, item) => sum + getFinalPrice(item.service) * item.quantity,
     0
   )
 
@@ -415,11 +426,30 @@ function ServicesPage() {
                         <span>{service.duration} min</span>
                       </div>
 
+                      {/* Discount Badge */}
+                      {service.discount > 0 && (
+                        <div className="flex items-center gap-2 mb-3">
+                          <span className="text-xs font-bold text-white bg-green-500 px-2 py-0.5 rounded-full">
+                            {service.discount}% OFF
+                          </span>
+                          <span className="text-xs text-green-600 font-medium">
+                            Save {'\u20B9'}{(service.basePrice - getFinalPrice(service)).toLocaleString('en-IN')}
+                          </span>
+                        </div>
+                      )}
+
                       {/* Price + Cart Action */}
                       <div className="flex items-center justify-between pt-3 border-t border-gray-100">
-                        <span className="text-xl font-bold text-[#6C63FF]">
-                          ₹{service.basePrice.toLocaleString('en-IN')}
-                        </span>
+                        <div>
+                          <span className="text-xl font-bold text-[#6C63FF]">
+                            {'\u20B9'}{getFinalPrice(service).toLocaleString('en-IN')}
+                          </span>
+                          {service.discount > 0 && (
+                            <span className="text-sm text-gray-400 line-through ml-2">
+                              {'\u20B9'}{service.basePrice.toLocaleString('en-IN')}
+                            </span>
+                          )}
+                        </div>
                         {qty === 0 ? (
                           <button
                             onClick={() => addToCart(service)}

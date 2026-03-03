@@ -8,6 +8,7 @@ interface Service {
   slug: string
   description: string | null
   basePrice: number
+  discount: number
   duration: number
   isActive: boolean
   createdAt: string
@@ -46,6 +47,7 @@ export default function AdminServicesPage() {
   const [svcName, setSvcName] = useState('')
   const [svcDesc, setSvcDesc] = useState('')
   const [svcPrice, setSvcPrice] = useState('')
+  const [svcDiscount, setSvcDiscount] = useState('0')
   const [svcDuration, setSvcDuration] = useState('60')
 
   const fetchCategories = useCallback(async () => {
@@ -79,6 +81,7 @@ export default function AdminServicesPage() {
     setSvcName('')
     setSvcDesc('')
     setSvcPrice('')
+    setSvcDiscount('0')
     setSvcDuration('60')
     setShowServiceForm(null)
     setEditingService(null)
@@ -166,6 +169,7 @@ export default function AdminServicesPage() {
           name: svcName,
           description: svcDesc,
           basePrice: svcPrice,
+          discount: svcDiscount,
           duration: svcDuration,
           categoryId,
         }),
@@ -201,6 +205,7 @@ export default function AdminServicesPage() {
           name: svcName,
           description: svcDesc,
           basePrice: svcPrice,
+          discount: svcDiscount,
           duration: svcDuration,
         }),
       })
@@ -284,6 +289,7 @@ export default function AdminServicesPage() {
     setSvcName(svc.name)
     setSvcDesc(svc.description || '')
     setSvcPrice(String(svc.basePrice))
+    setSvcDiscount(String(svc.discount || 0))
     setSvcDuration(String(svc.duration))
     setShowServiceForm('edit')
   }
@@ -484,7 +490,7 @@ export default function AdminServicesPage() {
                         <h4 className="text-sm font-semibold text-gray-900 mb-3">
                           {editingService ? 'Edit Service' : 'New Service'}
                         </h4>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 mb-3">
                           <div>
                             <label className="block text-xs font-semibold text-gray-600 mb-1">Name *</label>
                             <input
@@ -513,6 +519,18 @@ export default function AdminServicesPage() {
                               onChange={(e) => setSvcPrice(e.target.value)}
                               placeholder="499"
                               min="0"
+                              className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#6C63FF]/20 focus:border-[#6C63FF]"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-semibold text-gray-600 mb-1">Discount (%)</label>
+                            <input
+                              type="number"
+                              value={svcDiscount}
+                              onChange={(e) => setSvcDiscount(e.target.value)}
+                              placeholder="0"
+                              min="0"
+                              max="100"
                               className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#6C63FF]/20 focus:border-[#6C63FF]"
                             />
                           </div>
@@ -567,7 +585,17 @@ export default function AdminServicesPage() {
                               )}
                             </div>
                             <div className="text-right flex-shrink-0">
-                              <p className="text-sm font-bold text-gray-900">{'\u20B9'}{svc.basePrice.toLocaleString('en-IN')}</p>
+                              {svc.discount > 0 ? (
+                                <>
+                                  <p className="text-sm font-bold text-green-600">
+                                    {'\u20B9'}{Math.round(svc.basePrice * (1 - svc.discount / 100)).toLocaleString('en-IN')}
+                                    <span className="ml-1.5 text-[10px] font-semibold text-white bg-green-500 px-1.5 py-0.5 rounded-full">{svc.discount}% OFF</span>
+                                  </p>
+                                  <p className="text-[10px] text-gray-400 line-through">{'\u20B9'}{svc.basePrice.toLocaleString('en-IN')}</p>
+                                </>
+                              ) : (
+                                <p className="text-sm font-bold text-gray-900">{'\u20B9'}{svc.basePrice.toLocaleString('en-IN')}</p>
+                              )}
                               <p className="text-[10px] text-gray-400">{svc.duration} mins</p>
                             </div>
                             <div className="flex items-center gap-1 flex-shrink-0">

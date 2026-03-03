@@ -83,7 +83,7 @@ export async function POST(req: NextRequest) {
     }
 
     if (type === 'service') {
-      const { name, description, basePrice, duration, categoryId } = body
+      const { name, description, basePrice, duration, categoryId, discount } = body
       if (!name || !categoryId || basePrice === undefined) {
         return NextResponse.json({ error: 'Name, category, and base price are required' }, { status: 400 })
       }
@@ -105,6 +105,7 @@ export async function POST(req: NextRequest) {
           slug,
           description: description || null,
           basePrice: parseFloat(basePrice),
+          discount: discount !== undefined ? Math.min(100, Math.max(0, parseInt(discount) || 0)) : 0,
           duration: parseInt(duration) || 60,
           categoryId,
         },
@@ -163,7 +164,7 @@ export async function PATCH(req: NextRequest) {
     }
 
     if (type === 'service') {
-      const { name, description, basePrice, duration, isActive } = body
+      const { name, description, basePrice, duration, isActive, discount } = body
       const data: any = {}
       if (name !== undefined) {
         data.name = name
@@ -174,6 +175,7 @@ export async function PATCH(req: NextRequest) {
       }
       if (description !== undefined) data.description = description
       if (basePrice !== undefined) data.basePrice = parseFloat(basePrice)
+      if (discount !== undefined) data.discount = Math.min(100, Math.max(0, parseInt(discount) || 0))
       if (duration !== undefined) data.duration = parseInt(duration)
       if (isActive !== undefined) data.isActive = isActive
 

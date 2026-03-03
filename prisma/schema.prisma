@@ -87,6 +87,7 @@ model Service {
   categoryId  String
   category    ServiceCategory @relation(fields: [categoryId], references: [id])
   basePrice   Float
+  discount    Int       @default(0) // discount percentage (0-100)
   duration    Int
   image       String?
   isActive    Boolean   @default(true)
