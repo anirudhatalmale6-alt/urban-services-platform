@@ -1,0 +1,206 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String
+  email         String    @unique
+  phone         String?
+  password      String
+  role          String    @default("CONSUMER") // CONSUMER, PROVIDER, ADMIN
+  avatar        String?
+  isVerified    Boolean   @default(false)
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  providerProfile  ProviderProfile?
+  addresses        Address[]
+  bookings         Booking[]       @relation("ConsumerBookings")
+  reviews          Review[]
+  providerBookings Booking[]       @relation("ProviderBookings")
+  sentMessages     Message[]       @relation("SentMessages")
+  receivedMessages Message[]       @relation("ReceivedMessages")
+}
+
+model ProviderProfile {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bio             String?
+  experience      Int      @default(0)
+  idDocument      String?
+  idDocumentType  String?
+  isApproved      Boolean  @default(false)
+  approvedAt      DateTime?
+  rating          Float    @default(0)
+  totalReviews    Int      @default(0)
+  totalEarnings   Float    @default(0)
+  serviceAreaCity String?
+  serviceAreaPincode String?
+  availability    String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  services        ProviderService[]
+}
+
+model ServiceCategory {
+  id          String    @id @default(cuid())
+  name        String
+  slug        String    @unique
+  description String?
+  icon        String?
+  image       String?
+  isActive    Boolean   @default(true)
+  sortOrder   Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  services    Service[]
+}
+
+model Service {
+  id          String    @id @default(cuid())
+  name        String
+  slug        String    @unique
+  description String?
+  categoryId  String
+  category    ServiceCategory @relation(fields: [categoryId], references: [id])
+  basePrice   Float
+  duration    Int
+  image       String?
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  providerServices ProviderService[]
+  bookingItems     BookingItem[]
+}
+
+model ProviderService {
+  id          String   @id @default(cuid())
+  providerId  String
+  provider    ProviderProfile @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  serviceId   String
+  service     Service  @relation(fields: [serviceId], references: [id])
+  price       Float
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  @@unique([providerId, serviceId])
+}
+
+model Address {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  label       String   @default("Home")
+  fullAddress String
+  city        String
+  state       String
+  pincode     String
+  landmark    String?
+  lat         Float?
+  lng         Float?
+  isDefault   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  bookings    Booking[]
+}
+
+model Booking {
+  id              String   @id @default(cuid())
+  bookingNumber   String   @unique
+  consumerId      String
+  consumer        User     @relation("ConsumerBookings", fields: [consumerId], references: [id])
+  providerId      String?
+  provider        User?    @relation("ProviderBookings", fields: [providerId], references: [id])
+  addressId       String
+  address         Address  @relation(fields: [addressId], references: [id])
+  scheduledDate   DateTime
+  scheduledTime   String
+  status          String   @default("PENDING")
+  subtotal        Float
+  tax             Float    @default(0)
+  discount        Float    @default(0)
+  total           Float
+  paymentStatus   String   @default("PENDING")
+  paymentMethod   String?
+  paymentId       String?
+  notes           String?
+  cancelReason    String?
+  completedAt     DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  items           BookingItem[]
+  review          Review?
+  payment         Payment?
+}
+
+model BookingItem {
+  id          String   @id @default(cuid())
+  bookingId   String
+  booking     Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  serviceId   String
+  service     Service  @relation(fields: [serviceId], references: [id])
+  quantity    Int      @default(1)
+  price       Float
+  createdAt   DateTime @default(now())
+}
+
+model Payment {
+  id                String   @id @default(cuid())
+  bookingId         String   @unique
+  booking           Booking  @relation(fields: [bookingId], references: [id])
+  amount            Float
+  currency          String   @default("INR")
+  razorpayOrderId   String?
+  razorpayPaymentId String?
+  razorpaySignature String?
+  status            String   @default("PENDING")
+  method            String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+model Review {
+  id          String   @id @default(cuid())
+  bookingId   String   @unique
+  booking     Booking  @relation(fields: [bookingId], references: [id])
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  rating      Int
+  comment     String?
+  createdAt   DateTime @default(now())
+}
+
+model Message {
+  id          String   @id @default(cuid())
+  senderId    String
+  sender      User     @relation("SentMessages", fields: [senderId], references: [id])
+  receiverId  String
+  receiver    User     @relation("ReceivedMessages", fields: [receiverId], references: [id])
+  bookingId   String?
+  content     String
+  isRead      Boolean  @default(false)
+  createdAt   DateTime @default(now())
+}
+
+model Notification {
+  id          String   @id @default(cuid())
+  userId      String
+  title       String
+  message     String
+  type        String
+  isRead      Boolean  @default(false)
+  link        String?
+  createdAt   DateTime @default(now())
+}

@@ -1,0 +1,37 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --primary: #6C63FF;
+  --primary-dark: #5A52D5;
+  --secondary: #FF6584;
+  --accent: #00C9A7;
+  --bg: #F8F9FC;
+  --surface: #FFFFFF;
+  --text: #1A1A2E;
+  --text-light: #6B7280;
+  --border: #E5E7EB;
+}
+
+body {
+  color: var(--text);
+  background: var(--bg);
+}
+
+.gradient-primary {
+  background: linear-gradient(135deg, #6C63FF 0%, #5A52D5 100%);
+}
+
+.gradient-hero {
+  background: linear-gradient(135deg, #6C63FF 0%, #8B5CF6 50%, #A78BFA 100%);
+}
+
+.card-hover {
+  transition: all 0.2s ease;
+}
+
+.card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(108, 99, 255, 0.15);
+}
