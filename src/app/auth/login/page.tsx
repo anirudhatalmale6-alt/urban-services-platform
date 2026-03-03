@@ -17,8 +17,6 @@ export default function LoginPage() {
   const [otp, setOtp] = useState(['', '', '', '', '', ''])
   const [otpStep, setOtpStep] = useState<OTPStep>('phone')
   const [countdown, setCountdown] = useState(0)
-  const [devOtp, setDevOtp] = useState('')
-
   // Email state
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -66,9 +64,6 @@ export default function LoginPage() {
         setLoading(false)
         return
       }
-
-      // In dev mode, show the OTP for testing
-      if (data.otp) setDevOtp(data.otp)
 
       setOtpStep('otp')
       setCountdown(30)
@@ -294,7 +289,7 @@ export default function LoginPage() {
                 <div className="flex items-center justify-between mb-1.5">
                   <label className="block text-sm font-medium text-gray-700">Enter OTP</label>
                   <button
-                    onClick={() => { setOtpStep('phone'); setOtp(['', '', '', '', '', '']); setDevOtp('') }}
+                    onClick={() => { setOtpStep('phone'); setOtp(['', '', '', '', '', '']) }}
                     className="text-xs text-[#6C63FF] font-medium hover:underline"
                   >
                     Change number
@@ -321,12 +316,6 @@ export default function LoginPage() {
                   ))}
                 </div>
 
-                {/* Dev mode OTP hint */}
-                {devOtp && (
-                  <p className="text-xs text-center text-amber-600 mt-2 bg-amber-50 rounded-lg py-1.5">
-                    Dev mode — OTP: <span className="font-mono font-bold">{devOtp}</span>
-                  </p>
-                )}
               </div>
 
               <button

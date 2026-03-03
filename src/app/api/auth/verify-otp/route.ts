@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { otpStore } from '@/lib/otp-store'
+import twilio from 'twilio'
 import bcrypt from 'bcryptjs'
+
+const client = twilio(
+  process.env.TWILIO_ACCOUNT_SID,
+  process.env.TWILIO_AUTH_TOKEN
+)
 
 export async function POST(req: NextRequest) {
   try {
@@ -13,35 +18,26 @@ export async function POST(req: NextRequest) {
 
     const cleanPhone = phone.replace(/\s/g, '')
 
-    // In development, accept '123456' as universal OTP for testing
-    const isDev = process.env.NODE_ENV !== 'production'
-    const isValidOTP = isDev && otp === '123456'
-
-    // Verify OTP from store
-    const stored = otpStore.get(cleanPhone)
-    if (!isValidOTP) {
-      if (!stored) {
-        return NextResponse.json({ error: 'OTP expired or not found. Please request a new one.' }, { status: 400 })
-      }
-      if (stored.expiresAt < Date.now()) {
-        otpStore.delete(cleanPhone)
-        return NextResponse.json({ error: 'OTP has expired. Please request a new one.' }, { status: 400 })
-      }
-      if (stored.otp !== otp) {
-        return NextResponse.json({ error: 'Invalid OTP. Please try again.' }, { status: 400 })
-      }
+    const verifySid = process.env.TWILIO_VERIFY_SERVICE_SID
+    if (!verifySid) {
+      return NextResponse.json({ error: 'SMS service not configured' }, { status: 500 })
     }
 
-    // OTP verified — clean up
-    otpStore.delete(cleanPhone)
+    // Verify OTP via Twilio Verify
+    const check = await client.verify.v2
+      .services(verifySid)
+      .verificationChecks.create({ to: cleanPhone, code: otp })
 
-    // Check if user exists
+    if (check.status !== 'approved') {
+      return NextResponse.json({ error: 'Invalid OTP. Please try again.' }, { status: 400 })
+    }
+
+    // OTP verified — find or create user
     let user = await prisma.user.findFirst({
       where: { phone: cleanPhone },
     })
 
     if (!user) {
-      // New user — create account
       const validRoles = ['CONSUMER', 'PROVIDER']
       const userRole = validRoles.includes(role) ? role : 'CONSUMER'
       const randomPassword = await bcrypt.hash(Math.random().toString(36), 12)
@@ -74,8 +70,14 @@ export async function POST(req: NextRequest) {
         role: user.role,
       },
     })
-  } catch (error) {
-    console.error('Verify OTP error:', error)
+  } catch (error: any) {
+    console.error('Verify OTP error:', error?.message || error)
+    if (error?.code === 60200) {
+      return NextResponse.json({ error: 'Invalid OTP. Please try again.' }, { status: 400 })
+    }
+    if (error?.code === 20404) {
+      return NextResponse.json({ error: 'OTP expired or not found. Please request a new one.' }, { status: 400 })
+    }
     return NextResponse.json({ error: 'OTP verification failed' }, { status: 500 })
   }
 }

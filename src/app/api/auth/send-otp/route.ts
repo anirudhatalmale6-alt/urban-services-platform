@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { otpStore } from '@/lib/otp-store'
+import twilio from 'twilio'
 
-function generateOTP(): string {
-  return Math.floor(100000 + Math.random() * 900000).toString()
-}
+const client = twilio(
+  process.env.TWILIO_ACCOUNT_SID,
+  process.env.TWILIO_AUTH_TOKEN
+)
 
 export async function POST(req: NextRequest) {
   try {
@@ -15,33 +16,27 @@ export async function POST(req: NextRequest) {
 
     const cleanPhone = phone.replace(/\s/g, '')
 
-    // Rate limiting: max 3 OTPs per phone per 10 minutes
-    const existing = otpStore.get(cleanPhone)
-    if (existing && existing.attempts >= 3 && existing.expiresAt > Date.now()) {
-      return NextResponse.json({ error: 'Too many attempts. Please try again later.' }, { status: 429 })
+    const verifySid = process.env.TWILIO_VERIFY_SERVICE_SID
+    if (!verifySid) {
+      console.error('TWILIO_VERIFY_SERVICE_SID not configured')
+      return NextResponse.json({ error: 'SMS service not configured' }, { status: 500 })
     }
 
-    const otp = generateOTP()
-    const expiresAt = Date.now() + 5 * 60 * 1000 // 5 minutes
+    await client.verify.v2
+      .services(verifySid)
+      .verifications.create({ to: cleanPhone, channel: 'sms' })
 
-    otpStore.set(cleanPhone, {
-      otp,
-      expiresAt,
-      attempts: (existing?.attempts || 0) + 1,
-    })
-
-    // In production, send OTP via SMS provider (MSG91, Twilio, Firebase)
-    console.log(`[OTP] ${cleanPhone}: ${otp}`)
-
-    const isDev = process.env.NODE_ENV !== 'production'
+    console.log(`[OTP] Sent to ${cleanPhone} via Twilio Verify`)
 
     return NextResponse.json({
       message: 'OTP sent successfully',
       phone: cleanPhone,
-      ...(isDev && { otp }),
     })
-  } catch (error) {
-    console.error('Send OTP error:', error)
+  } catch (error: any) {
+    console.error('Send OTP error:', error?.message || error)
+    if (error?.code === 60203) {
+      return NextResponse.json({ error: 'Too many attempts. Please try again later.' }, { status: 429 })
+    }
     return NextResponse.json({ error: 'Failed to send OTP' }, { status: 500 })
   }
 }

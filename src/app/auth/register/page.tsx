@@ -15,7 +15,6 @@ export default function RegisterPage() {
   const [phone, setPhone] = useState('')
   const [otp, setOtp] = useState(['', '', '', '', '', ''])
   const [countdown, setCountdown] = useState(0)
-  const [devOtp, setDevOtp] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [verifiedUserId, setVerifiedUserId] = useState('')
@@ -49,7 +48,6 @@ export default function RegisterPage() {
         return
       }
 
-      if (data.otp) setDevOtp(data.otp)
       setStep('otp')
       setCountdown(30)
     } catch {
@@ -344,7 +342,7 @@ export default function RegisterPage() {
               <h2 className="text-2xl font-bold text-gray-900 mb-2">Verify your number</h2>
               <p className="text-gray-500 mb-6">
                 Enter the 6-digit code sent to <span className="font-medium text-gray-700">+91 {phone}</span>
-                <button onClick={() => { setStep('phone'); setOtp(['','','','','','']); setDevOtp('') }} className="text-[#6C63FF] ml-2 text-sm font-medium hover:underline">Change</button>
+                <button onClick={() => { setStep('phone'); setOtp(['','','','','','']) }} className="text-[#6C63FF] ml-2 text-sm font-medium hover:underline">Change</button>
               </p>
 
               <div className="flex gap-2 justify-center mb-4" onPaste={handleOtpPaste}>
@@ -363,12 +361,6 @@ export default function RegisterPage() {
                   />
                 ))}
               </div>
-
-              {devOtp && (
-                <p className="text-xs text-center text-amber-600 mb-4 bg-amber-50 rounded-lg py-1.5">
-                  Dev mode — OTP: <span className="font-mono font-bold">{devOtp}</span>
-                </p>
-              )}
 
               <button
                 onClick={handleVerifyOTP}
