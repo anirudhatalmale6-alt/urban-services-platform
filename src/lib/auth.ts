@@ -5,7 +5,9 @@ import bcrypt from 'bcryptjs'
 
 export const authOptions: NextAuthOptions = {
   providers: [
+    // Email + Password login
     CredentialsProvider({
+      id: 'credentials',
       name: 'credentials',
       credentials: {
         email: { label: 'Email', type: 'email' },
@@ -22,6 +24,31 @@ export const authOptions: NextAuthOptions = {
 
         const isValid = await bcrypt.compare(credentials.password, user.password)
         if (!isValid) return null
+
+        return {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          image: user.avatar,
+        }
+      },
+    }),
+    // Phone + OTP login
+    CredentialsProvider({
+      id: 'phone-otp',
+      name: 'phone-otp',
+      credentials: {
+        userId: { label: 'User ID', type: 'text' },
+      },
+      async authorize(credentials) {
+        if (!credentials?.userId) return null
+
+        const user = await prisma.user.findUnique({
+          where: { id: credentials.userId },
+        })
+
+        if (!user || !user.isActive) return null
 
         return {
           id: user.id,
