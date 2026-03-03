@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
       user = await prisma.user.create({
         data: {
           name: name || `User ${cleanPhone.slice(-4)}`,
-          email: `${cleanPhone.replace('+', '')}@phone.urbanserv.local`,
+          email: `${cleanPhone.replace('+', '')}@phone.suchiti.local`,
           phone: cleanPhone,
           password: randomPassword,
           role: userRole,

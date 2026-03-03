@@ -92,7 +92,7 @@ export default function ProviderLayout({ children }: { children: React.ReactNode
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
               </svg>
             </div>
-            <span className="text-xl font-bold text-gray-900">UrbanServ</span>
+            <span className="text-xl font-bold text-gray-900">Suchiti</span>
           </Link>
         </div>
 
@@ -152,7 +152,7 @@ export default function ProviderLayout({ children }: { children: React.ReactNode
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
             </svg>
           </div>
-          <span className="text-lg font-bold text-gray-900">UrbanServ</span>
+          <span className="text-lg font-bold text-gray-900">Suchiti</span>
         </Link>
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 gradient-primary rounded-full flex items-center justify-center text-white text-sm font-semibold">

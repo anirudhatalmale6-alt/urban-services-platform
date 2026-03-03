@@ -195,7 +195,7 @@ export default function LoginPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
               </svg>
             </div>
-            <span className="text-2xl font-bold">UrbanServ</span>
+            <span className="text-2xl font-bold">Suchiti</span>
           </div>
           <h1 className="text-4xl font-bold mb-4">Welcome back!</h1>
           <p className="text-white/80 text-lg">Book trusted professionals for all your home service needs. Quality service, right at your doorstep.</p>
@@ -211,7 +211,7 @@ export default function LoginPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
               </svg>
             </div>
-            <span className="text-xl font-bold text-gray-900">UrbanServ</span>
+            <span className="text-xl font-bold text-gray-900">Suchiti</span>
           </div>
 
           <h2 className="text-2xl font-bold text-gray-900 mb-2">Sign in to your account</h2>

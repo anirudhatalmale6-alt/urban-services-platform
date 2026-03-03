@@ -99,7 +99,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               </svg>
             </div>
             <div>
-              <span className="text-lg font-bold text-white">UrbanServ</span>
+              <span className="text-lg font-bold text-white">Suchiti</span>
               <span className="block text-[10px] text-indigo-300 -mt-0.5 font-medium tracking-wider uppercase">Admin Panel</span>
             </div>
           </Link>

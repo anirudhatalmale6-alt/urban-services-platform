@@ -122,7 +122,7 @@ export default function NewBookingPage() {
   // Load cart from localStorage
   useEffect(() => {
     try {
-      const raw = localStorage.getItem('urbanserv-cart')
+      const raw = localStorage.getItem('suchiti-cart')
       if (raw) {
         const parsed: CartItem[] = JSON.parse(raw)
         if (Array.isArray(parsed) && parsed.length > 0) {
@@ -259,7 +259,7 @@ export default function NewBookingPage() {
       setBookingResult(booking)
 
       // Clear cart
-      localStorage.removeItem('urbanserv-cart')
+      localStorage.removeItem('suchiti-cart')
       setCart([])
     } catch (err: any) {
       setSubmitError(err.message || 'Something went wrong. Please try again.')

@@ -107,9 +107,9 @@ function ServicesPage() {
         quantity: item.quantity,
         categoryIcon: item.service.category.icon,
       }))
-      localStorage.setItem('urbanserv-cart', JSON.stringify(cartData))
+      localStorage.setItem('suchiti-cart', JSON.stringify(cartData))
     } else {
-      localStorage.removeItem('urbanserv-cart')
+      localStorage.removeItem('suchiti-cart')
     }
   }, [cart])
 

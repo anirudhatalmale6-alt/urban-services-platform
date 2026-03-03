@@ -6,7 +6,7 @@ import SessionProvider from "@/components/SessionProvider"
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "UrbanServ - Home Services at Your Doorstep",
+  title: "Suchiti - Home Services at Your Doorstep",
   description: "Book trusted professionals for home services — cleaning, repairs, beauty, and more.",
 }
 

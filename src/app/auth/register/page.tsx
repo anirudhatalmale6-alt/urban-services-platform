@@ -183,9 +183,9 @@ export default function RegisterPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
               </svg>
             </div>
-            <span className="text-2xl font-bold">UrbanServ</span>
+            <span className="text-2xl font-bold">Suchiti</span>
           </div>
-          <h1 className="text-4xl font-bold mb-4">Join UrbanServ</h1>
+          <h1 className="text-4xl font-bold mb-4">Join Suchiti</h1>
           <p className="text-white/80 text-lg">
             {role === 'PROVIDER'
               ? 'Start earning by providing quality services to customers in your area.'
@@ -203,7 +203,7 @@ export default function RegisterPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
               </svg>
             </div>
-            <span className="text-xl font-bold text-gray-900">UrbanServ</span>
+            <span className="text-xl font-bold text-gray-900">Suchiti</span>
           </div>
 
           {/* Progress indicator */}
@@ -227,7 +227,7 @@ export default function RegisterPage() {
           {step === 'role' && (
             <div>
               <h2 className="text-2xl font-bold text-gray-900 mb-2">Create your account</h2>
-              <p className="text-gray-500 mb-6">How do you want to use UrbanServ?</p>
+              <p className="text-gray-500 mb-6">How do you want to use Suchiti?</p>
 
               <div className="space-y-3 mb-6">
                 <button

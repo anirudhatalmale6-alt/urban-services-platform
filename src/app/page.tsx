@@ -178,7 +178,7 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="gradient-hero rounded-3xl p-10 lg:p-16 text-center text-white">
             <h2 className="text-3xl lg:text-4xl font-bold mb-4">Ready to get started?</h2>
-            <p className="text-white/80 mb-8 max-w-md mx-auto">Join thousands of happy customers who trust UrbanServ for their home service needs.</p>
+            <p className="text-white/80 mb-8 max-w-md mx-auto">Join thousands of happy customers who trust Suchiti for their home service needs.</p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link href="/auth/register" className="bg-white text-[#6C63FF] px-8 py-3.5 rounded-xl font-semibold hover:bg-gray-50 transition">
                 Book a Service
@@ -202,7 +202,7 @@ export default function HomePage() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                   </svg>
                 </div>
-                <span className="font-bold">UrbanServ</span>
+                <span className="font-bold">Suchiti</span>
               </div>
               <p className="text-sm text-gray-400">Quality home services at your doorstep. Trusted by thousands.</p>
             </div>
@@ -235,7 +235,7 @@ export default function HomePage() {
             </div>
           </div>
           <div className="border-t border-gray-800 mt-8 pt-8 text-center text-sm text-gray-500">
-            &copy; 2026 UrbanServ. All rights reserved.
+            &copy; 2026 Suchiti. All rights reserved.
           </div>
         </div>
       </footer>
