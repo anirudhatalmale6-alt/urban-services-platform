@@ -19,11 +19,27 @@ export async function GET(req: NextRequest) {
     if (user.role === 'CONSUMER') {
       where.consumerId = user.id
     } else if (user.role === 'PROVIDER') {
-      // Show bookings assigned to this provider OR unassigned bookings (available to claim)
-      where.OR = [
-        { providerId: user.id },
-        { providerId: null, status: 'PENDING' },
-      ]
+      // Get provider's offered service IDs for filtering
+      const profile = await prisma.providerProfile.findUnique({
+        where: { userId: user.id },
+        include: { services: { select: { serviceId: true } } },
+      })
+      const offeredServiceIds = profile?.services.map((s) => s.serviceId) || []
+
+      if (offeredServiceIds.length > 0) {
+        // Show assigned bookings OR unassigned bookings that match provider's services
+        where.OR = [
+          { providerId: user.id },
+          {
+            providerId: null,
+            status: 'PENDING',
+            items: { some: { serviceId: { in: offeredServiceIds } } },
+          },
+        ]
+      } else {
+        // Provider hasn't selected services — only show their assigned bookings
+        where.providerId = user.id
+      }
     }
 
     if (status && status !== 'ALL') {

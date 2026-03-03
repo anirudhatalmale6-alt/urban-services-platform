@@ -31,6 +31,8 @@ interface AddressForm {
   pincode: string
   landmark: string
   label: string
+  lat?: number
+  lng?: number
 }
 
 interface BookingResult {
@@ -98,6 +100,7 @@ export default function NewBookingPage() {
   })
   const [addressSaving, setAddressSaving] = useState(false)
   const [addressError, setAddressError] = useState('')
+  const [gpsLoading, setGpsLoading] = useState(false)
 
   // Schedule state
   const [selectedDate, setSelectedDate] = useState('')
@@ -218,6 +221,62 @@ export default function NewBookingPage() {
     } finally {
       setAddressSaving(false)
     }
+  }
+
+  // GPS location handler
+  const handleUseCurrentLocation = async () => {
+    if (!navigator.geolocation) {
+      setAddressError('Geolocation is not supported by your browser.')
+      return
+    }
+
+    setGpsLoading(true)
+    setAddressError('')
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords
+        try {
+          // Reverse geocode using Nominatim (free, no API key needed)
+          const res = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&addressdetails=1`,
+            { headers: { 'Accept-Language': 'en' } }
+          )
+          if (res.ok) {
+            const data = await res.json()
+            const addr = data.address || {}
+            const road = addr.road || addr.neighbourhood || ''
+            const suburb = addr.suburb || addr.village || ''
+            const city = addr.city || addr.town || addr.county || ''
+            const state = addr.state || ''
+            const pincode = addr.postcode || ''
+
+            setAddressForm((prev) => ({
+              ...prev,
+              fullAddress: [road, suburb].filter(Boolean).join(', '),
+              city,
+              state,
+              pincode: pincode.replace(/\D/g, '').slice(0, 6),
+              lat: latitude,
+              lng: longitude,
+            }))
+          }
+        } catch {
+          // Even if geocoding fails, save the coordinates
+          setAddressForm((prev) => ({ ...prev, lat: latitude, lng: longitude }))
+        }
+        setGpsLoading(false)
+      },
+      (error) => {
+        setGpsLoading(false)
+        if (error.code === error.PERMISSION_DENIED) {
+          setAddressError('Location permission denied. Please allow location access and try again.')
+        } else {
+          setAddressError('Unable to get your location. Please enter the address manually.')
+        }
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    )
   }
 
   // Step validation
@@ -645,6 +704,38 @@ export default function NewBookingPage() {
                     ))}
                   </div>
                 </div>
+
+                {/* Use Current Location */}
+                <button
+                  type="button"
+                  onClick={handleUseCurrentLocation}
+                  disabled={gpsLoading}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl border-2 border-dashed border-[#6C63FF]/30 bg-[#6C63FF]/5 text-[#6C63FF] hover:bg-[#6C63FF]/10 transition font-medium text-sm disabled:opacity-50"
+                >
+                  {gpsLoading ? (
+                    <>
+                      <span className="w-4 h-4 border-2 border-[#6C63FF] border-t-transparent rounded-full animate-spin" />
+                      Detecting location...
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                      Use Current Location
+                    </>
+                  )}
+                </button>
+
+                {addressForm.lat && addressForm.lng && (
+                  <div className="flex items-center gap-1.5 px-3 py-1.5 bg-green-50 rounded-lg">
+                    <svg className="w-3.5 h-3.5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    <span className="text-xs text-green-700 font-medium">GPS coordinates captured</span>
+                  </div>
+                )}
 
                 {/* Full Address */}
                 <div>

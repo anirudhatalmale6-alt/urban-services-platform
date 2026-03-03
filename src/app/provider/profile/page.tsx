@@ -25,6 +25,25 @@ interface ProviderProfile {
   }
 }
 
+interface ServiceCategory {
+  id: string
+  name: string
+  slug: string
+}
+
+interface ServiceItem {
+  id: string
+  name: string
+  basePrice: number
+  category: ServiceCategory
+}
+
+interface ProviderServiceItem {
+  id: string
+  serviceId: string
+  service: ServiceItem
+}
+
 export default function ProviderProfilePage() {
   const { data: session } = useSession()
   const user = session?.user as any
@@ -43,6 +62,12 @@ export default function ProviderProfilePage() {
   const [serviceAreaCity, setServiceAreaCity] = useState('')
   const [serviceAreaPincode, setServiceAreaPincode] = useState('')
   const [idDocument, setIdDocument] = useState<File | null>(null)
+
+  // Services state
+  const [allServices, setAllServices] = useState<ServiceItem[]>([])
+  const [selectedServiceIds, setSelectedServiceIds] = useState<Set<string>>(new Set())
+  const [servicesSaving, setServicesSaving] = useState(false)
+  const [servicesSaved, setServicesSaved] = useState(false)
 
   const fetchProfile = useCallback(async () => {
     try {
@@ -68,6 +93,62 @@ export default function ProviderProfilePage() {
   useEffect(() => {
     fetchProfile()
   }, [fetchProfile])
+
+  // Fetch all available services and provider's selected services
+  const fetchServices = useCallback(async () => {
+    try {
+      const [allRes, myRes] = await Promise.all([
+        fetch('/api/services'),
+        fetch('/api/provider/services'),
+      ])
+      if (allRes.ok) {
+        const data = await allRes.json()
+        setAllServices(data)
+      }
+      if (myRes.ok) {
+        const data: ProviderServiceItem[] = await myRes.json()
+        setSelectedServiceIds(new Set(data.map((ps) => ps.serviceId)))
+      }
+    } catch {
+      // ignore
+    }
+  }, [])
+
+  useEffect(() => {
+    fetchServices()
+  }, [fetchServices])
+
+  const toggleService = (serviceId: string) => {
+    setSelectedServiceIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(serviceId)) {
+        next.delete(serviceId)
+      } else {
+        next.add(serviceId)
+      }
+      return next
+    })
+  }
+
+  const handleSaveServices = async () => {
+    setServicesSaving(true)
+    setServicesSaved(false)
+    try {
+      const res = await fetch('/api/provider/services', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ serviceIds: Array.from(selectedServiceIds) }),
+      })
+      if (res.ok) {
+        setServicesSaved(true)
+        setTimeout(() => setServicesSaved(false), 3000)
+      }
+    } catch {
+      // ignore
+    } finally {
+      setServicesSaving(false)
+    }
+  }
 
   const handleSave = async () => {
     setSaving(true)
@@ -355,6 +436,79 @@ export default function ProviderProfilePage() {
               )}
             </button>
           </div>
+        </div>
+
+        {/* Services Offered */}
+        <div className="bg-white rounded-2xl border border-gray-100 p-6 mt-6">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900">Services Offered</h2>
+              <p className="text-sm text-gray-500 mt-0.5">Select the services you provide. You&apos;ll only see bookings for these services.</p>
+            </div>
+          </div>
+
+          {allServices.length === 0 ? (
+            <p className="text-sm text-gray-400 py-4">Loading services...</p>
+          ) : (
+            <>
+              {/* Group services by category */}
+              {Object.entries(
+                allServices.reduce<Record<string, ServiceItem[]>>((acc, svc) => {
+                  const catName = svc.category?.name || 'Other'
+                  if (!acc[catName]) acc[catName] = []
+                  acc[catName].push(svc)
+                  return acc
+                }, {})
+              ).map(([categoryName, services]) => (
+                <div key={categoryName} className="mb-5 last:mb-0">
+                  <h3 className="text-sm font-semibold text-gray-700 mb-2">{categoryName}</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {services.map((svc) => (
+                      <button
+                        key={svc.id}
+                        onClick={() => toggleService(svc.id)}
+                        className={`px-3 py-2 rounded-xl text-sm font-medium border transition ${
+                          selectedServiceIds.has(svc.id)
+                            ? 'border-[#6C63FF] bg-[#6C63FF]/10 text-[#6C63FF]'
+                            : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                        }`}
+                      >
+                        {svc.name}
+                        <span className="text-xs ml-1 opacity-60">{'\u20B9'}{svc.basePrice}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+
+              {servicesSaved && (
+                <div className="mt-4 px-4 py-3 rounded-xl bg-green-50 border border-green-200 text-sm text-green-700 flex items-center gap-2">
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  Services saved! You&apos;ll now see matching bookings.
+                </div>
+              )}
+
+              <div className="mt-4 flex items-center justify-between">
+                <p className="text-xs text-gray-400">{selectedServiceIds.size} service{selectedServiceIds.size !== 1 ? 's' : ''} selected</p>
+                <button
+                  onClick={handleSaveServices}
+                  disabled={servicesSaving}
+                  className="gradient-primary text-white px-6 py-2 rounded-xl text-sm font-semibold hover:opacity-90 transition disabled:opacity-50 flex items-center gap-2"
+                >
+                  {servicesSaving ? (
+                    <>
+                      <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    'Save Services'
+                  )}
+                </button>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </div>
