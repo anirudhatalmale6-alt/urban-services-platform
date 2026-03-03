@@ -96,6 +96,7 @@ export default function ProviderDashboard() {
   const todaysBookings = bookings.filter(
     (b) => b.scheduledDate.split('T')[0] === today && b.status !== 'CANCELLED'
   )
+  // Available = unassigned PENDING bookings any provider can claim
   const pendingRequests = bookings.filter((b) => b.status === 'PENDING')
   const completedThisMonth = bookings.filter((b) => {
     if (b.status !== 'COMPLETED' || !b.completedAt) return false
@@ -186,7 +187,7 @@ export default function ProviderDashboard() {
         {/* Pending Requests - Quick Actions */}
         <div className="bg-white rounded-2xl border border-gray-100">
           <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-gray-900">Pending Requests</h2>
+            <h2 className="text-lg font-semibold text-gray-900">Available Bookings</h2>
             {pendingRequests.length > 0 && (
               <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-yellow-50 text-yellow-700">
                 {pendingRequests.length} new
@@ -213,7 +214,7 @@ export default function ProviderDashboard() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                 </div>
-                <p className="text-sm text-gray-500">No pending requests</p>
+                <p className="text-sm text-gray-500">No available bookings</p>
               </div>
             ) : (
               pendingRequests.slice(0, 5).map((booking) => {

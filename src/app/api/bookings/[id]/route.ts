@@ -28,6 +28,10 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       if (status === 'CANCELLED') {
         updateData.cancelReason = cancelReason
       }
+      // Auto-assign provider when they accept (CONFIRMED) an unassigned booking
+      if (status === 'CONFIRMED' && user.role === 'PROVIDER' && !booking.providerId) {
+        updateData.providerId = user.id
+      }
     }
 
     if (providerId && (user.role === 'ADMIN' || user.role === 'PROVIDER')) {

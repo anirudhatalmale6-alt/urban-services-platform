@@ -19,7 +19,11 @@ export async function GET(req: NextRequest) {
     if (user.role === 'CONSUMER') {
       where.consumerId = user.id
     } else if (user.role === 'PROVIDER') {
-      where.providerId = user.id
+      // Show bookings assigned to this provider OR unassigned bookings (available to claim)
+      where.OR = [
+        { providerId: user.id },
+        { providerId: null, status: 'PENDING' },
+      ]
     }
 
     if (status && status !== 'ALL') {
