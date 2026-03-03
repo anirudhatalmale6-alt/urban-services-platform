@@ -15,6 +15,14 @@ interface ProviderProfile {
   totalReviews: number
   totalEarnings: number
   serviceAreaCity: string | null
+  photoUrl: string | null
+  aadhaarUrl: string | null
+  aadhaarNumber: string | null
+  dlVoterUrl: string | null
+  dlVoterType: string | null
+  dlVoterNumber: string | null
+  verificationStatus: string
+  verificationNote: string | null
 }
 
 interface User {
@@ -339,22 +347,81 @@ export default function AdminUsersPage() {
                             </div>
                           )}
 
-                          {u.providerProfile.idDocument && (
+                          {/* Verification Documents */}
+                          {(u.providerProfile.photoUrl || u.providerProfile.aadhaarUrl || u.providerProfile.dlVoterUrl) && (
                             <div className="mb-4">
-                              <p className="text-xs text-gray-500 mb-1">ID Document</p>
-                              <div className="flex items-center gap-2">
-                                <span className="text-xs font-medium text-gray-700 bg-gray-100 px-2 py-1 rounded">
-                                  {u.providerProfile.idDocumentType || 'Document'}
-                                </span>
-                                <a
-                                  href={u.providerProfile.idDocument}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-xs font-semibold text-[#6C63FF] hover:underline"
-                                >
-                                  View Document
-                                </a>
+                              <p className="text-xs text-gray-500 mb-2 font-semibold uppercase tracking-wider">Verification Documents</p>
+                              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                {/* Photo */}
+                                {u.providerProfile.photoUrl && (
+                                  <div className="border border-gray-200 rounded-xl p-3">
+                                    <p className="text-xs font-semibold text-gray-700 mb-2">Profile Photo</p>
+                                    <div className="w-full h-24 rounded-lg overflow-hidden bg-gray-100 mb-2">
+                                      <img src={u.providerProfile.photoUrl} alt="Photo" className="w-full h-full object-cover" />
+                                    </div>
+                                    <a href={u.providerProfile.photoUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-[#6C63FF] font-semibold hover:underline">
+                                      View Full Size
+                                    </a>
+                                  </div>
+                                )}
+
+                                {/* Aadhaar */}
+                                {u.providerProfile.aadhaarUrl && (
+                                  <div className="border border-gray-200 rounded-xl p-3">
+                                    <p className="text-xs font-semibold text-gray-700 mb-1">Aadhaar Card</p>
+                                    {u.providerProfile.aadhaarNumber && (
+                                      <p className="text-xs text-gray-500 mb-2">No: {u.providerProfile.aadhaarNumber}</p>
+                                    )}
+                                    <div className="w-full h-24 rounded-lg overflow-hidden bg-gray-100 mb-2">
+                                      <img src={u.providerProfile.aadhaarUrl} alt="Aadhaar" className="w-full h-full object-cover" />
+                                    </div>
+                                    <a href={u.providerProfile.aadhaarUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-[#6C63FF] font-semibold hover:underline">
+                                      View Full Size
+                                    </a>
+                                  </div>
+                                )}
+
+                                {/* DL/Voter/RC */}
+                                {u.providerProfile.dlVoterUrl && (
+                                  <div className="border border-gray-200 rounded-xl p-3">
+                                    <p className="text-xs font-semibold text-gray-700 mb-1">
+                                      {u.providerProfile.dlVoterType === 'DRIVING_LICENSE' ? 'Driving License' :
+                                       u.providerProfile.dlVoterType === 'VOTER_ID' ? 'Voter ID' :
+                                       u.providerProfile.dlVoterType === 'VEHICLE_RC' ? 'Vehicle RC' : 'Document'}
+                                    </p>
+                                    {u.providerProfile.dlVoterNumber && (
+                                      <p className="text-xs text-gray-500 mb-2">No: {u.providerProfile.dlVoterNumber}</p>
+                                    )}
+                                    <div className="w-full h-24 rounded-lg overflow-hidden bg-gray-100 mb-2">
+                                      <img src={u.providerProfile.dlVoterUrl} alt="Document" className="w-full h-full object-cover" />
+                                    </div>
+                                    <a href={u.providerProfile.dlVoterUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-[#6C63FF] font-semibold hover:underline">
+                                      View Full Size
+                                    </a>
+                                  </div>
+                                )}
                               </div>
+                            </div>
+                          )}
+
+                          {/* Verification Status Badge */}
+                          {u.providerProfile.verificationStatus && u.providerProfile.verificationStatus !== 'NOT_SUBMITTED' && (
+                            <div className="mb-3">
+                              <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${
+                                u.providerProfile.verificationStatus === 'APPROVED' ? 'bg-green-50 text-green-700' :
+                                u.providerProfile.verificationStatus === 'PENDING' ? 'bg-yellow-50 text-yellow-700' :
+                                'bg-red-50 text-red-700'
+                              }`}>
+                                <span className={`w-1.5 h-1.5 rounded-full ${
+                                  u.providerProfile.verificationStatus === 'APPROVED' ? 'bg-green-400' :
+                                  u.providerProfile.verificationStatus === 'PENDING' ? 'bg-yellow-400' :
+                                  'bg-red-400'
+                                }`} />
+                                Verification: {u.providerProfile.verificationStatus}
+                              </span>
+                              {u.providerProfile.verificationNote && (
+                                <p className="text-xs text-red-600 mt-1 ml-1">Note: {u.providerProfile.verificationNote}</p>
+                              )}
                             </div>
                           )}
 

@@ -45,6 +45,17 @@ model ProviderProfile {
   serviceAreaCity String?
   serviceAreaPincode String?
   availability    String?
+
+  // Verification documents
+  photoUrl        String?
+  aadhaarUrl      String?
+  aadhaarNumber   String?
+  dlVoterUrl      String?
+  dlVoterType     String?  // DRIVING_LICENSE, VOTER_ID, VEHICLE_RC
+  dlVoterNumber   String?
+  verificationStatus String @default("NOT_SUBMITTED") // NOT_SUBMITTED, PENDING, APPROVED, REJECTED
+  verificationNote   String?
+
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 

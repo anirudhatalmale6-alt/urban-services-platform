@@ -56,6 +56,14 @@ export async function GET(req: NextRequest) {
             totalReviews: true,
             totalEarnings: true,
             serviceAreaCity: true,
+            photoUrl: true,
+            aadhaarUrl: true,
+            aadhaarNumber: true,
+            dlVoterUrl: true,
+            dlVoterType: true,
+            dlVoterNumber: true,
+            verificationStatus: true,
+            verificationNote: true,
           },
         },
       },
@@ -105,21 +113,28 @@ export async function PATCH(req: NextRequest) {
         data: {
           isApproved: true,
           approvedAt: new Date(),
+          verificationStatus: 'APPROVED',
+          verificationNote: null,
         },
       })
       await prisma.user.update({
         where: { id: userId },
         data: { isVerified: true },
       })
-      return NextResponse.json({ success: true, isApproved: true })
+      return NextResponse.json({ success: true, isApproved: true, verificationStatus: 'APPROVED' })
     }
 
     if (action === 'rejectProvider') {
       await prisma.providerProfile.update({
         where: { userId },
-        data: { isApproved: false, approvedAt: null },
+        data: {
+          isApproved: false,
+          approvedAt: null,
+          verificationStatus: 'REJECTED',
+          verificationNote: value || 'Documents rejected by admin',
+        },
       })
-      return NextResponse.json({ success: true, isApproved: false })
+      return NextResponse.json({ success: true, isApproved: false, verificationStatus: 'REJECTED' })
     }
 
     if (action === 'updateRole') {
