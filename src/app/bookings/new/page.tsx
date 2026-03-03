@@ -40,6 +40,7 @@ interface BookingResult {
   scheduledDate: string
   scheduledTime: string
   paymentMethod: string
+  paymentStatus?: string
   address: SavedAddress
 }
 
@@ -226,6 +227,15 @@ export default function NewBookingPage() {
     return true
   }
 
+  // Load Razorpay script
+  useEffect(() => {
+    const script = document.createElement('script')
+    script.src = 'https://checkout.razorpay.com/v1/checkout.js'
+    script.async = true
+    document.head.appendChild(script)
+    return () => { document.head.removeChild(script) }
+  }, [])
+
   // Submit booking
   const handleConfirmBooking = async () => {
     if (!selectedAddressId || !selectedDate || !selectedTime) return
@@ -234,6 +244,7 @@ export default function NewBookingPage() {
     setSubmitError('')
 
     try {
+      // Create booking
       const res = await fetch('/api/bookings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -256,14 +267,74 @@ export default function NewBookingPage() {
       }
 
       const booking = await res.json()
-      setBookingResult(booking)
 
-      // Clear cart
-      localStorage.removeItem('suchiti-cart')
-      setCart([])
+      if (paymentMethod === 'RAZORPAY') {
+        // Create Razorpay order
+        const orderRes = await fetch('/api/payments/create-order', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ bookingId: booking.id }),
+        })
+
+        if (!orderRes.ok) throw new Error('Failed to create payment order')
+
+        const orderData = await orderRes.json()
+
+        // Open Razorpay checkout
+        const options = {
+          key: orderData.key,
+          amount: orderData.amount,
+          currency: orderData.currency,
+          name: 'Suchiti',
+          description: `Booking #${orderData.bookingNumber}`,
+          order_id: orderData.orderId,
+          prefill: orderData.prefill,
+          theme: { color: '#6C63FF' },
+          handler: async (response: any) => {
+            // Verify payment
+            const verifyRes = await fetch('/api/payments/verify', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+                bookingId: booking.id,
+              }),
+            })
+
+            if (!verifyRes.ok) {
+              setSubmitError('Payment verification failed. Contact support.')
+              setIsSubmitting(false)
+              return
+            }
+
+            booking.paymentStatus = 'PAID'
+            setBookingResult(booking)
+            localStorage.removeItem('suchiti-cart')
+            setCart([])
+            setIsSubmitting(false)
+          },
+          modal: {
+            ondismiss: () => {
+              // Payment cancelled — booking still exists with PENDING payment
+              setSubmitError('Payment was cancelled. You can retry from My Bookings.')
+              setIsSubmitting(false)
+            },
+          },
+        }
+
+        const rzp = new (window as any).Razorpay(options)
+        rzp.open()
+      } else {
+        // COD — just show success
+        setBookingResult(booking)
+        localStorage.removeItem('suchiti-cart')
+        setCart([])
+        setIsSubmitting(false)
+      }
     } catch (err: any) {
       setSubmitError(err.message || 'Something went wrong. Please try again.')
-    } finally {
       setIsSubmitting(false)
     }
   }
@@ -326,9 +397,15 @@ export default function NewBookingPage() {
               <div className="flex justify-between py-2 border-b border-gray-100">
                 <span className="text-sm text-gray-500">Payment</span>
                 <span className="text-sm font-medium text-gray-900">
-                  {bookingResult.paymentMethod === 'COD' ? 'Cash on Delivery' : 'Razorpay'}
+                  {bookingResult.paymentMethod === 'COD' ? 'Cash on Delivery' : 'Online (Razorpay)'}
                 </span>
               </div>
+              {bookingResult.paymentStatus === 'PAID' && (
+                <div className="flex justify-between py-2 border-b border-gray-100">
+                  <span className="text-sm text-gray-500">Status</span>
+                  <span className="text-sm font-medium text-green-600">Paid</span>
+                </div>
+              )}
               <div className="flex justify-between py-2">
                 <span className="text-sm text-gray-500">Total</span>
                 <span className="text-lg font-bold text-[#6C63FF]">
