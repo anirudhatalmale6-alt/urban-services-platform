@@ -73,37 +73,48 @@ export async function POST(req: NextRequest) {
       dlVoterNumber,
     } = body
 
-    // Validate required fields
-    if (!photoUrl || !aadhaarUrl || !aadhaarNumber || !dlVoterUrl || !dlVoterType || !dlVoterNumber) {
-      return NextResponse.json({ error: 'All documents are required for verification' }, { status: 400 })
+    // Validate: photo is mandatory
+    if (!photoUrl) {
+      return NextResponse.json({ error: 'Profile photo is required' }, { status: 400 })
     }
 
-    // Validate dlVoterType
-    if (!['DRIVING_LICENSE', 'VOTER_ID', 'VEHICLE_RC'].includes(dlVoterType)) {
+    // Validate: at least one ID document (Aadhaar OR DL/Voter ID)
+    const hasAadhaar = aadhaarUrl && aadhaarNumber
+    const hasDlVoter = dlVoterUrl && dlVoterType && dlVoterNumber
+    if (!hasAadhaar && !hasDlVoter) {
+      return NextResponse.json({ error: 'At least one ID document is required (Aadhaar or DL/Voter ID)' }, { status: 400 })
+    }
+
+    // Validate dlVoterType if provided
+    if (dlVoterType && !['DRIVING_LICENSE', 'VOTER_ID', 'VEHICLE_RC'].includes(dlVoterType)) {
       return NextResponse.json({ error: 'Invalid document type' }, { status: 400 })
+    }
+
+    const profileData: any = {
+      photoUrl,
+      verificationStatus: 'PENDING',
+      verificationNote: null,
+    }
+
+    // Only set Aadhaar fields if provided
+    if (hasAadhaar) {
+      profileData.aadhaarUrl = aadhaarUrl
+      profileData.aadhaarNumber = aadhaarNumber
+    }
+
+    // Only set DL/Voter fields if provided
+    if (hasDlVoter) {
+      profileData.dlVoterUrl = dlVoterUrl
+      profileData.dlVoterType = dlVoterType
+      profileData.dlVoterNumber = dlVoterNumber
     }
 
     const profile = await prisma.providerProfile.upsert({
       where: { userId: user.id },
-      update: {
-        photoUrl,
-        aadhaarUrl,
-        aadhaarNumber,
-        dlVoterUrl,
-        dlVoterType,
-        dlVoterNumber,
-        verificationStatus: 'PENDING',
-        verificationNote: null,
-      },
+      update: profileData,
       create: {
         userId: user.id,
-        photoUrl,
-        aadhaarUrl,
-        aadhaarNumber,
-        dlVoterUrl,
-        dlVoterType,
-        dlVoterNumber,
-        verificationStatus: 'PENDING',
+        ...profileData,
       },
     })
 

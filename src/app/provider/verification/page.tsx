@@ -14,10 +14,11 @@ interface VerificationData {
   isApproved: boolean
 }
 
-const DL_VOTER_OPTIONS = [
+const ID_DOC_OPTIONS = [
+  { value: 'AADHAAR', label: 'Aadhaar Card' },
   { value: 'DRIVING_LICENSE', label: 'Driving License' },
   { value: 'VOTER_ID', label: 'Voter ID' },
-  { value: 'VEHICLE_RC', label: 'Vehicle RC (Registration Certificate)' },
+  { value: 'VEHICLE_RC', label: 'Vehicle RC' },
 ]
 
 export default function ProviderVerificationPage() {
@@ -26,6 +27,9 @@ export default function ProviderVerificationPage() {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
+
+  // Which ID doc type the user chose
+  const [idDocChoice, setIdDocChoice] = useState<string>('AADHAAR')
 
   // Upload states
   const [photoFile, setPhotoFile] = useState<File | null>(null)
@@ -54,9 +58,15 @@ export default function ProviderVerificationPage() {
         const d = await res.json()
         setData(d)
         if (d.photoUrl) setPhotoUrl(d.photoUrl)
-        if (d.aadhaarUrl) setAadhaarUrl(d.aadhaarUrl)
+        if (d.aadhaarUrl) {
+          setAadhaarUrl(d.aadhaarUrl)
+          setIdDocChoice('AADHAAR')
+        }
         if (d.aadhaarNumber) setAadhaarNumber(d.aadhaarNumber)
-        if (d.dlVoterUrl) setDlVoterUrl(d.dlVoterUrl)
+        if (d.dlVoterUrl) {
+          setDlVoterUrl(d.dlVoterUrl)
+          if (d.dlVoterType) setIdDocChoice(d.dlVoterType)
+        }
         if (d.dlVoterType) setDlVoterType(d.dlVoterType)
         if (d.dlVoterNumber) setDlVoterNumber(d.dlVoterNumber)
       }
@@ -119,42 +129,37 @@ export default function ProviderVerificationPage() {
     setError('')
     setSuccess('')
 
-    // Upload any files that haven't been uploaded yet
-    if (photoFile && !photoUrl) {
-      await uploadFile(photoFile, 'photo', setPhotoUploading, setPhotoUrl)
-    }
-    if (aadhaarFile && !aadhaarUrl) {
-      await uploadFile(aadhaarFile, 'aadhaar', setAadhaarUploading, setAadhaarUrl)
-    }
-    if (dlVoterFile && !dlVoterUrl) {
-      await uploadFile(dlVoterFile, 'dlvoter', setDlVoterUploading, setDlVoterUrl)
-    }
-
-    // Validate all fields
+    // Validate photo (mandatory)
     if (!photoUrl && !photoFile) {
       setError('Please upload your photo')
       return
     }
-    if (!aadhaarUrl && !aadhaarFile) {
-      setError('Please upload your Aadhaar card')
-      return
-    }
-    if (!aadhaarNumber.trim()) {
-      setError('Please enter your Aadhaar number')
-      return
-    }
-    if (!dlVoterUrl && !dlVoterFile) {
-      setError('Please upload your Driving License / Voter ID / Vehicle RC')
-      return
-    }
-    if (!dlVoterNumber.trim()) {
-      setError('Please enter the document number')
-      return
+
+    // Validate chosen ID document
+    const isAadhaar = idDocChoice === 'AADHAAR'
+    if (isAadhaar) {
+      if (!aadhaarUrl && !aadhaarFile) {
+        setError('Please upload your Aadhaar card')
+        return
+      }
+      if (!aadhaarNumber.trim()) {
+        setError('Please enter your Aadhaar number')
+        return
+      }
+    } else {
+      if (!dlVoterUrl && !dlVoterFile) {
+        setError(`Please upload your ${ID_DOC_OPTIONS.find(o => o.value === idDocChoice)?.label || 'document'}`)
+        return
+      }
+      if (!dlVoterNumber.trim()) {
+        setError('Please enter the document number')
+        return
+      }
     }
 
     setSubmitting(true)
     try {
-      // Upload pending files first
+      // Upload pending files
       let finalPhotoUrl = photoUrl
       let finalAadhaarUrl = aadhaarUrl
       let finalDlVoterUrl = dlVoterUrl
@@ -162,30 +167,44 @@ export default function ProviderVerificationPage() {
       if (photoFile && !finalPhotoUrl) {
         await uploadFile(photoFile, 'photo', setPhotoUploading, (url) => { finalPhotoUrl = url; setPhotoUrl(url) })
       }
-      if (aadhaarFile && !finalAadhaarUrl) {
+      if (isAadhaar && aadhaarFile && !finalAadhaarUrl) {
         await uploadFile(aadhaarFile, 'aadhaar', setAadhaarUploading, (url) => { finalAadhaarUrl = url; setAadhaarUrl(url) })
       }
-      if (dlVoterFile && !finalDlVoterUrl) {
+      if (!isAadhaar && dlVoterFile && !finalDlVoterUrl) {
         await uploadFile(dlVoterFile, 'dlvoter', setDlVoterUploading, (url) => { finalDlVoterUrl = url; setDlVoterUrl(url) })
       }
 
-      if (!finalPhotoUrl || !finalAadhaarUrl || !finalDlVoterUrl) {
-        setError('Please upload all required documents')
+      if (!finalPhotoUrl) {
+        setError('Photo upload failed. Please try again.')
         setSubmitting(false)
         return
+      }
+
+      const payload: any = { photoUrl: finalPhotoUrl }
+
+      if (isAadhaar) {
+        if (!finalAadhaarUrl) {
+          setError('Aadhaar upload failed. Please try again.')
+          setSubmitting(false)
+          return
+        }
+        payload.aadhaarUrl = finalAadhaarUrl
+        payload.aadhaarNumber = aadhaarNumber.trim()
+      } else {
+        if (!finalDlVoterUrl) {
+          setError('Document upload failed. Please try again.')
+          setSubmitting(false)
+          return
+        }
+        payload.dlVoterUrl = finalDlVoterUrl
+        payload.dlVoterType = idDocChoice
+        payload.dlVoterNumber = dlVoterNumber.trim()
       }
 
       const res = await fetch('/api/provider/verification', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          photoUrl: finalPhotoUrl,
-          aadhaarUrl: finalAadhaarUrl,
-          aadhaarNumber: aadhaarNumber.trim(),
-          dlVoterUrl: finalDlVoterUrl,
-          dlVoterType,
-          dlVoterNumber: dlVoterNumber.trim(),
-        }),
+        body: JSON.stringify(payload),
       })
 
       if (res.ok) {
@@ -337,7 +356,7 @@ export default function ProviderVerificationPage() {
             </div>
           </div>
 
-          {/* 2. Aadhaar Card */}
+          {/* 2. ID Document — choose one */}
           <div className="bg-white rounded-2xl border border-gray-100 p-6">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 bg-orange-50 rounded-xl flex items-center justify-center">
@@ -346,145 +365,143 @@ export default function ProviderVerificationPage() {
                 </svg>
               </div>
               <div>
-                <h3 className="text-sm font-semibold text-gray-900">Aadhaar Card</h3>
-                <p className="text-xs text-gray-500">Government-issued identity proof</p>
+                <h3 className="text-sm font-semibold text-gray-900">ID Document</h3>
+                <p className="text-xs text-gray-500">Upload any one: Aadhaar, Driving License, Voter ID, or Vehicle RC</p>
               </div>
-              {aadhaarUrl && !aadhaarFile && (
-                <span className="ml-auto text-xs font-semibold text-green-600 bg-green-50 px-2 py-1 rounded-full">Uploaded</span>
-              )}
             </div>
 
-            {/* Aadhaar Number */}
-            <div className="mb-4">
-              <label className="block text-xs font-medium text-gray-600 mb-1.5">Aadhaar Number</label>
-              <input
-                type="text"
-                value={aadhaarNumber}
-                onChange={(e) => {
-                  const val = e.target.value.replace(/\D/g, '').slice(0, 12)
-                  setAadhaarNumber(val.replace(/(\d{4})(?=\d)/g, '$1 ').trim())
-                }}
-                disabled={!canEdit}
-                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:border-[#6C63FF] focus:ring-2 focus:ring-[#6C63FF]/20 outline-none transition text-sm disabled:bg-gray-50 disabled:text-gray-500"
-                placeholder="XXXX XXXX XXXX"
-                maxLength={14}
-              />
-            </div>
-
-            {/* Upload */}
-            <div className="flex items-center gap-4">
-              <div className="w-24 h-16 rounded-xl border-2 border-dashed border-gray-200 flex items-center justify-center overflow-hidden bg-gray-50 flex-shrink-0">
-                {(aadhaarPreview || aadhaarUrl) ? (
-                  <img src={aadhaarPreview || aadhaarUrl!} alt="Aadhaar" className="w-full h-full object-cover rounded-xl" />
-                ) : (
-                  <svg className="w-6 h-6 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
-                )}
-              </div>
-
-              {canEdit && (
-                <div className="flex-1">
-                  <input
-                    type="file"
-                    accept="image/jpeg,image/png,image/webp,application/pdf"
-                    onChange={(e) => {
-                      handleFileSelect(e, setAadhaarFile, setAadhaarPreview)
-                      const file = e.target.files?.[0]
-                      if (file) uploadFile(file, 'aadhaar', setAadhaarUploading, setAadhaarUrl)
-                    }}
-                    className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-[#6C63FF]/10 file:text-[#6C63FF] hover:file:bg-[#6C63FF]/20"
-                  />
-                  {aadhaarUploading && <p className="text-xs text-[#6C63FF] mt-1 animate-pulse">Uploading...</p>}
-                  <p className="text-xs text-gray-400 mt-1">Upload front side of Aadhaar card</p>
+            {/* Document type chooser */}
+            {canEdit && (
+              <div className="mb-5">
+                <label className="block text-xs font-medium text-gray-600 mb-2">Choose Document Type</label>
+                <div className="flex gap-2 flex-wrap">
+                  {ID_DOC_OPTIONS.map((opt) => (
+                    <button
+                      key={opt.value}
+                      onClick={() => { setIdDocChoice(opt.value); if (opt.value !== 'AADHAAR') setDlVoterType(opt.value) }}
+                      className={`px-3 py-2 rounded-xl text-xs font-semibold border transition ${
+                        idDocChoice === opt.value
+                          ? 'border-[#6C63FF] bg-[#6C63FF]/10 text-[#6C63FF]'
+                          : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
                 </div>
-              )}
-            </div>
-          </div>
-
-          {/* 3. DL / Voter ID / Vehicle RC */}
-          <div className="bg-white rounded-2xl border border-gray-100 p-6">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 bg-purple-50 rounded-xl flex items-center justify-center">
-                <svg className="w-5 h-5 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
               </div>
-              <div>
-                <h3 className="text-sm font-semibold text-gray-900">Secondary ID Document</h3>
-                <p className="text-xs text-gray-500">Driving License, Voter ID, or Vehicle RC</p>
-              </div>
-              {dlVoterUrl && !dlVoterFile && (
-                <span className="ml-auto text-xs font-semibold text-green-600 bg-green-50 px-2 py-1 rounded-full">Uploaded</span>
-              )}
-            </div>
+            )}
 
-            {/* Document type selector */}
-            <div className="mb-4">
-              <label className="block text-xs font-medium text-gray-600 mb-1.5">Document Type</label>
-              <div className="flex gap-2 flex-wrap">
-                {DL_VOTER_OPTIONS.map((opt) => (
-                  <button
-                    key={opt.value}
-                    onClick={() => canEdit && setDlVoterType(opt.value)}
+            {/* Aadhaar fields */}
+            {idDocChoice === 'AADHAAR' && (
+              <>
+                <div className="mb-4">
+                  <label className="block text-xs font-medium text-gray-600 mb-1.5">Aadhaar Number</label>
+                  <input
+                    type="text"
+                    value={aadhaarNumber}
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/\D/g, '').slice(0, 12)
+                      setAadhaarNumber(val.replace(/(\d{4})(?=\d)/g, '$1 ').trim())
+                    }}
                     disabled={!canEdit}
-                    className={`px-3 py-2 rounded-xl text-xs font-semibold border transition ${
-                      dlVoterType === opt.value
-                        ? 'border-[#6C63FF] bg-[#6C63FF]/10 text-[#6C63FF]'
-                        : 'border-gray-200 text-gray-600 hover:border-gray-300'
-                    } disabled:opacity-50`}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Document Number */}
-            <div className="mb-4">
-              <label className="block text-xs font-medium text-gray-600 mb-1.5">Document Number</label>
-              <input
-                type="text"
-                value={dlVoterNumber}
-                onChange={(e) => setDlVoterNumber(e.target.value.toUpperCase())}
-                disabled={!canEdit}
-                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:border-[#6C63FF] focus:ring-2 focus:ring-[#6C63FF]/20 outline-none transition text-sm disabled:bg-gray-50 disabled:text-gray-500"
-                placeholder={
-                  dlVoterType === 'DRIVING_LICENSE' ? 'e.g. MH01 20200012345'
-                  : dlVoterType === 'VOTER_ID' ? 'e.g. ABC1234567'
-                  : 'e.g. MH01AB1234'
-                }
-              />
-            </div>
-
-            {/* Upload */}
-            <div className="flex items-center gap-4">
-              <div className="w-24 h-16 rounded-xl border-2 border-dashed border-gray-200 flex items-center justify-center overflow-hidden bg-gray-50 flex-shrink-0">
-                {(dlVoterPreview || dlVoterUrl) ? (
-                  <img src={dlVoterPreview || dlVoterUrl!} alt="Document" className="w-full h-full object-cover rounded-xl" />
-                ) : (
-                  <svg className="w-6 h-6 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
-                )}
-              </div>
-
-              {canEdit && (
-                <div className="flex-1">
-                  <input
-                    type="file"
-                    accept="image/jpeg,image/png,image/webp,application/pdf"
-                    onChange={(e) => {
-                      handleFileSelect(e, setDlVoterFile, setDlVoterPreview)
-                      const file = e.target.files?.[0]
-                      if (file) uploadFile(file, 'dlvoter', setDlVoterUploading, setDlVoterUrl)
-                    }}
-                    className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-[#6C63FF]/10 file:text-[#6C63FF] hover:file:bg-[#6C63FF]/20"
+                    className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:border-[#6C63FF] focus:ring-2 focus:ring-[#6C63FF]/20 outline-none transition text-sm disabled:bg-gray-50 disabled:text-gray-500"
+                    placeholder="XXXX XXXX XXXX"
+                    maxLength={14}
                   />
-                  {dlVoterUploading && <p className="text-xs text-[#6C63FF] mt-1 animate-pulse">Uploading...</p>}
                 </div>
-              )}
-            </div>
+
+                <div className="flex items-center gap-4">
+                  <div className="w-24 h-16 rounded-xl border-2 border-dashed border-gray-200 flex items-center justify-center overflow-hidden bg-gray-50 flex-shrink-0">
+                    {(aadhaarPreview || aadhaarUrl) ? (
+                      <img src={aadhaarPreview || aadhaarUrl!} alt="Aadhaar" className="w-full h-full object-cover rounded-xl" />
+                    ) : (
+                      <svg className="w-6 h-6 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                    )}
+                  </div>
+
+                  {canEdit && (
+                    <div className="flex-1">
+                      <input
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp,application/pdf"
+                        onChange={(e) => {
+                          handleFileSelect(e, setAadhaarFile, setAadhaarPreview)
+                          const file = e.target.files?.[0]
+                          if (file) uploadFile(file, 'aadhaar', setAadhaarUploading, setAadhaarUrl)
+                        }}
+                        className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-[#6C63FF]/10 file:text-[#6C63FF] hover:file:bg-[#6C63FF]/20"
+                      />
+                      {aadhaarUploading && <p className="text-xs text-[#6C63FF] mt-1 animate-pulse">Uploading...</p>}
+                      <p className="text-xs text-gray-400 mt-1">Upload front side of Aadhaar card</p>
+                    </div>
+                  )}
+                </div>
+
+                {aadhaarUrl && !aadhaarFile && (
+                  <div className="mt-2">
+                    <span className="text-xs font-semibold text-green-600 bg-green-50 px-2 py-1 rounded-full">Uploaded</span>
+                  </div>
+                )}
+              </>
+            )}
+
+            {/* DL / Voter ID / Vehicle RC fields */}
+            {idDocChoice !== 'AADHAAR' && (
+              <>
+                <div className="mb-4">
+                  <label className="block text-xs font-medium text-gray-600 mb-1.5">Document Number</label>
+                  <input
+                    type="text"
+                    value={dlVoterNumber}
+                    onChange={(e) => setDlVoterNumber(e.target.value.toUpperCase())}
+                    disabled={!canEdit}
+                    className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:border-[#6C63FF] focus:ring-2 focus:ring-[#6C63FF]/20 outline-none transition text-sm disabled:bg-gray-50 disabled:text-gray-500"
+                    placeholder={
+                      idDocChoice === 'DRIVING_LICENSE' ? 'e.g. MH01 20200012345'
+                      : idDocChoice === 'VOTER_ID' ? 'e.g. ABC1234567'
+                      : 'e.g. MH01AB1234'
+                    }
+                  />
+                </div>
+
+                <div className="flex items-center gap-4">
+                  <div className="w-24 h-16 rounded-xl border-2 border-dashed border-gray-200 flex items-center justify-center overflow-hidden bg-gray-50 flex-shrink-0">
+                    {(dlVoterPreview || dlVoterUrl) ? (
+                      <img src={dlVoterPreview || dlVoterUrl!} alt="Document" className="w-full h-full object-cover rounded-xl" />
+                    ) : (
+                      <svg className="w-6 h-6 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                    )}
+                  </div>
+
+                  {canEdit && (
+                    <div className="flex-1">
+                      <input
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp,application/pdf"
+                        onChange={(e) => {
+                          handleFileSelect(e, setDlVoterFile, setDlVoterPreview)
+                          const file = e.target.files?.[0]
+                          if (file) uploadFile(file, 'dlvoter', setDlVoterUploading, setDlVoterUrl)
+                        }}
+                        className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-[#6C63FF]/10 file:text-[#6C63FF] hover:file:bg-[#6C63FF]/20"
+                      />
+                      {dlVoterUploading && <p className="text-xs text-[#6C63FF] mt-1 animate-pulse">Uploading...</p>}
+                    </div>
+                  )}
+                </div>
+
+                {dlVoterUrl && !dlVoterFile && (
+                  <div className="mt-2">
+                    <span className="text-xs font-semibold text-green-600 bg-green-50 px-2 py-1 rounded-full">Uploaded</span>
+                  </div>
+                )}
+              </>
+            )}
           </div>
 
           {/* Error / Success */}
